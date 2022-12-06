@@ -7,16 +7,30 @@ import (
 	"github.com/spf13/viper"
 )
 
-type Config struct {
+type Target struct {
 	Host       string
-	TargetHost string
 	Protocol   string
+	Deployment string
+	Timeout    struct {
+		Forward int
+		Ping    int
+	}
+}
+
+type Config struct {
+	Host   string
+	Target Target
 }
 
 var defaultConfig = []byte(`
 Host: localhost:8080
-TargetHost: example.com
-Protocol: tcp
+Target:
+  Host: example.com
+  Protocol: tcp
+  Deployment: example
+	Timeout:
+	  Ping: 1000
+	  Forward: 5000
 `)
 
 func LoadConfig() (cfg *Config) {
