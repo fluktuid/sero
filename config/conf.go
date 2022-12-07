@@ -2,28 +2,29 @@ package config
 
 import (
 	"bytes"
+	"fmt"
 
 	log "github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
 
 type Target struct {
-	Host       string
-	Protocol   string
-	Deployment string
+	Host       string `mapstructure:"host"`
+	Protocol   string `mapstructure:"protocol"`
+	Deployment string `mapstructure:"deployment"`
 	Timeout    struct {
-		Forward int
-		Ping    int
-	}
+		Forward int `mapstructure:"forward"`
+		Ping    int `mapstructure:"ping"`
+	} `mapstructure:"timeout"`
 }
 
 type Config struct {
-	Host   string
-	Target Target
+	Host   string `mapstructure:"host"`
+	Target Target `mapstructure:"target"`
 }
 
 var defaultConfig = []byte(`
-Host: localhost:8080
+Host: :8080
 Target:
   Host: example.com
   Protocol: tcp
@@ -33,17 +34,21 @@ Target:
 	  Forward: 5000
 `)
 
-func LoadConfig() (cfg *Config) {
+func LoadConfig() *Config {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("/")
 	viper.AddConfigPath(".")
 	viper.ReadConfig(bytes.NewBuffer(defaultConfig))
+	viper.ReadInConfig()
+	var cfg Config
 	err := viper.Unmarshal(&cfg)
 	if err != nil {
 		log.Panic().
 			Err(err).
 			Msg("Fatal error reading config file")
 	}
-	return
+	log.Info().Str("config", fmt.Sprintf("%+v", cfg)).
+		Msg("config loaded")
+	return &cfg
 }

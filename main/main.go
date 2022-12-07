@@ -3,8 +3,10 @@ package main
 import (
 	"io"
 	"net"
+	"os"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	cfg "github.com/fluktuid/sero/config"
@@ -14,10 +16,12 @@ import (
 var target t.Target
 
 func main() {
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 	config := cfg.LoadConfig()
 
 	target = *t.Init(config.Target.Deployment)
-	ln, err := net.Listen(config.Host, config.Host)
+	ln, err := net.Listen("tcp", config.Host)
 	if err != nil {
 		panic(err)
 	}
@@ -28,16 +32,17 @@ func main() {
 			panic(err)
 		}
 
-		go handleRequest(config.Target.Protocol, config.Target.Host, config.Target.Timeout.Forward, conn)
+		go handleRequest(config.Target.Protocol, config.Target.Host, config.Target.Timeout.Ping, config.Target.Timeout.Forward, conn)
 	}
 }
 
-func handleRequest(protocol string, targetHost string, timeout int, conn net.Conn) {
+func handleRequest(protocol string, targetHost string, timeout, scaleUpTimeout int, conn net.Conn) {
 	log.Info().Msg("new client")
 
 	proxy, err := net.DialTimeout(protocol, targetHost, time.Duration(timeout)*time.Millisecond)
 	if err != nil {
-		readyChan := target.NotifyFailedRequest()
+		log.Info().Msg("notify failed request")
+		readyChan := target.NotifyFailedRequest(scaleUpTimeout)
 
 		for range readyChan {
 		}

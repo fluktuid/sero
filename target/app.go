@@ -1,6 +1,8 @@
 package target
 
 import (
+	"github.com/rs/zerolog/log"
+
 	"github.com/fluktuid/sero/cluster"
 	"github.com/fluktuid/sero/util"
 )
@@ -26,11 +28,12 @@ func (t *Target) Deployment() string {
 	return t.deployment
 }
 
-func (t *Target) NotifyFailedRequest() <-chan util.Void {
+func (t *Target) NotifyFailedRequest(chanTimeout int) <-chan util.Void {
 	if t.scaler.Status() != util.StatusUpscaling {
+		log.Info().Msg("scaling up")
 		t.scaler.ScaleUP()
 	}
 
 	// returns 'continue' chan
-	return t.scaler.StatusReadyChan(60000)
+	return t.scaler.StatusReadyChan(chanTimeout)
 }
