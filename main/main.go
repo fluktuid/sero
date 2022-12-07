@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	cfg "github.com/fluktuid/sero/config"
+	"github.com/fluktuid/sero/metrics"
 	t "github.com/fluktuid/sero/target"
 )
 
@@ -20,11 +21,16 @@ func main() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 	config := cfg.LoadConfig()
 
+	metrics.InitAsync()
+
 	target = *t.Init(config.Target.Deployment)
 	ln, err := net.Listen("tcp", config.Host)
 	if err != nil {
 		panic(err)
 	}
+
+	metrics.Ready(true)
+	metrics.Healthy(true)
 
 	for {
 		conn, err := ln.Accept()
@@ -37,6 +43,7 @@ func main() {
 }
 
 func handleRequest(protocol string, targetHost string, timeout, scaleUpTimeout int, conn net.Conn) {
+	metrics.RecordRequest()
 	log.Info().Msg("new client")
 
 	proxy, err := net.DialTimeout(protocol, targetHost, time.Duration(timeout)*time.Millisecond)
@@ -53,6 +60,7 @@ func handleRequest(protocol string, targetHost string, timeout, scaleUpTimeout i
 				Err(err).
 				Str("target", targetHost).
 				Msg("Failed dialing Target")
+			metrics.RecordRequestFinish(false)
 		}
 	}
 
@@ -61,6 +69,7 @@ func handleRequest(protocol string, targetHost string, timeout, scaleUpTimeout i
 		Msg("Proxy connected")
 	go copyIO(conn, proxy)
 	go copyIO(proxy, conn)
+	metrics.RecordRequestFinish(true)
 }
 
 func copyIO(src, dest net.Conn) {
