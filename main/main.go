@@ -38,7 +38,7 @@ func main() {
 			panic(err)
 		}
 
-		go handleRequest(config.Target.Protocol, config.Target.Host, config.Target.Timeout.Ping, config.Target.Timeout.Forward, conn)
+		go handleRequest(config.Target.Protocol, config.Target.Host, config.Target.Timeout.Forward, config.Target.Timeout.ScaleUP, conn)
 	}
 }
 
@@ -56,11 +56,11 @@ func handleRequest(protocol string, targetHost string, timeout, scaleUpTimeout i
 
 		proxy, err = net.DialTimeout(protocol, targetHost, time.Duration(timeout)*time.Millisecond)
 		if err != nil {
-			log.Panic().
+			metrics.RecordRequestFinish(false)
+			log.Warn().
 				Err(err).
 				Str("target", targetHost).
 				Msg("Failed dialing Target")
-			metrics.RecordRequestFinish(false)
 		}
 	}
 
