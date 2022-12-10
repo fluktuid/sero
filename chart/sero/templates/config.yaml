@@ -1,0 +1,14 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ include "sero.fullname" . }}
+data:
+  config.yaml: |
+    host: :{{ .Values.container.port }}
+    target:
+      host: {{ .Values.target.host }}:{{ .Values.target.port | default 8080 }}
+      protocol: {{ .Values.target.protocol }}
+      deployment: {{ .Values.target.deployment }}
+      timeout:
+        forward: {{ .Values.target.timeout.forward }}
+        scaleUP: {{ .Values.target.timeout.scaleUP }}
