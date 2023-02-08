@@ -66,6 +66,7 @@ ENV UID=$UID
 # Use an unprivileged user.
 USER ${UID}:${UID}
 
+LABEL org.opencontainers.image.source=https://github.com/fluktuid/sero
 
 # Run the binary.
 ENTRYPOINT ["/main"]
