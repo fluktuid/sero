@@ -13,8 +13,9 @@ type Target struct {
 	Protocol   string `mapstructure:"protocol"`
 	Deployment string `mapstructure:"deployment"`
 	Timeout    struct {
-		Forward int `mapstructure:"forward"`
-		ScaleUP int `mapstructure:"scaleUP"`
+		Forward   int `mapstructure:"forward"`
+		ScaleUP   int `mapstructure:"scaleUP"`
+		ScaleDown int `mapstructure:"scaleDown"`
 	} `mapstructure:"timeout"`
 }
 
@@ -32,6 +33,7 @@ Target:
 	Timeout:
 	  Forward: 200
 	  scaleUP: 3000
+	  scaleDown: 1800000
 `)
 
 func LoadConfig() *Config {

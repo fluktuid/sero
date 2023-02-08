@@ -37,3 +37,10 @@ func (t *Target) NotifyFailedRequest(chanTimeout int) <-chan util.Void {
 	// returns 'continue' chan
 	return t.scaler.StatusReadyChan(chanTimeout)
 }
+
+func (t *Target) NotifyScaleDown() {
+	if t.scaler.Status() != util.StatusDownscaling {
+		log.Info().Msg("scaling down")
+		t.scaler.ScaleDown()
+	}
+}
