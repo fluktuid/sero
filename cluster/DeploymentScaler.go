@@ -32,6 +32,18 @@ func (d DeploymentScaler) ScaleUP() {
 	}
 }
 
+func (d DeploymentScaler) ScaleDown() {
+	deploy, _ := clientSet.AppsV1().Deployments(namespace).Get(context.TODO(), d.targetDeploymentName, v1.GetOptions{})
+	if *deploy.Spec.Replicas > 0 {
+		zero := int32(0)
+		deploy.Spec.Replicas = &zero
+		_, err := clientSet.AppsV1().Deployments(namespace).Update(context.TODO(), deploy, v1.UpdateOptions{})
+		if err != nil {
+			log.Error().Err(err).Msg("error getting kubernetes stuff")
+		}
+	}
+}
+
 func (d DeploymentScaler) Status() util.Status {
 	deploy, err := clientSet.AppsV1().Deployments(namespace).Get(context.TODO(), d.targetDeploymentName, v1.GetOptions{})
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 
 type Scaler interface {
 	ScaleUP()
+	ScaleDown()
 	Status() util.Status
 	StatusReadyChan(int) <-chan util.Void
 }
