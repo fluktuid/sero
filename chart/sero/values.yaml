@@ -25,8 +25,9 @@ serviceAccount:
 
 podAnnotations: {}
 
-podSecurityContext: {}
-  # fsGroup: 2000
+podSecurityContext:
+  fsGroup: 2000
+  fsGroupChangePolicy: "OnRootMismatch"
 
 securityContext:
   capabilities:
@@ -36,8 +37,6 @@ securityContext:
   runAsNonRoot: true
   runAsUser: 1001
   runAsGroup: 3000
-  fsGroup: 2000
-  fsGroupChangePolicy: "OnRootMismatch"
   allowPrivilegeEscalation: false
 
 container:
