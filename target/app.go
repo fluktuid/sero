@@ -2,6 +2,7 @@ package target
 
 import (
 	"sync"
+	"time"
 
 	"github.com/rs/zerolog/log"
 
@@ -30,7 +31,7 @@ func (t *Target) Deployment() string {
 	return t.deployment
 }
 
-func (t *Target) NotifyFailedRequest(timeout int) *sync.WaitGroup {
+func (t *Target) NotifyFailedRequest(timeout time.Duration) *sync.WaitGroup {
 	if t.scaler.Status() != util.StatusUpscaling {
 		log.Info().Msg("scaling up")
 		t.scaler.ScaleUP()

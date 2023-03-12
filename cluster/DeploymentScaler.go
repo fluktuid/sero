@@ -2,11 +2,14 @@ package cluster
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/fluktuid/sero/util"
 )
@@ -62,20 +65,17 @@ func (d DeploymentScaler) Status() util.Status {
 	return util.StatusDown
 }
 
-func (d DeploymentScaler) StatusReady(timeoutMillis int) *sync.WaitGroup {
+func (d DeploymentScaler) StatusReady(timeout time.Duration) *sync.WaitGroup {
 	var wg sync.WaitGroup
 	wg.Add(1)
+
 	go func() {
-		desired, ready := d.replicas(d.targetDeploymentName)
-		limit := timeoutMillis / 4
-		for desired > ready {
-			log.Info().Msg("unready replicas")
-			time.Sleep(time.Duration(250) * time.Millisecond)
-			desired, ready = d.replicas(d.targetDeploymentName)
-			limit--
-		}
-		log.Info().Msg("ready replicas or waitlimit")
+		err := waitForDeployRunning(clientSet, namespace, d.targetDeploymentName, timeout)
 		wg.Done()
+		log.Info().Time("now", time.Now()).Msg("pod ready")
+		if err != nil {
+			log.Warn().Err(err).Msg("Error while waiting for ready deployment")
+		}
 	}()
 	return &wg
 }
@@ -83,4 +83,29 @@ func (d DeploymentScaler) StatusReady(timeoutMillis int) *sync.WaitGroup {
 func (d DeploymentScaler) replicas(deployment string) (int, int) {
 	deploy, _ := clientSet.AppsV1().Deployments(namespace).Get(context.TODO(), deployment, v1.GetOptions{})
 	return int(deploy.Status.Replicas), int(deploy.Status.ReadyReplicas)
+}
+
+// Poll up to timeout seconds for pod to enter running state.
+// Returns an error if the pod never enters the running state.
+func waitForDeployRunning(c kubernetes.Interface, namespace, deployName string, timeout time.Duration) error {
+	return wait.PollImmediate(100*time.Millisecond, timeout, hasDeployReadyPod(c, deployName, namespace))
+}
+
+// return a condition function that indicates whether the given pod is
+// currently running
+func hasDeployReadyPod(c kubernetes.Interface, deployName, namespace string) wait.ConditionFunc {
+	return func() (bool, error) {
+		fmt.Printf(".") // progress bar!
+		deploy, err := c.AppsV1().Deployments(namespace).Get(context.TODO(), deployName, v1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		if deploy.Status.ReadyReplicas > 0 {
+			return true, nil
+		} else if deploy.Status.ReadyReplicas == 0 && *deploy.Spec.Replicas == 0 {
+			return false, nil // todo: add condition
+		}
+		return false, nil
+	}
 }

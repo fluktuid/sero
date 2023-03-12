@@ -48,26 +48,29 @@ func main() {
 		}
 		sleeper.Notify()
 
+		timeout := time.Duration(config.Target.Timeout.Forward * int(time.Millisecond))
+		scaleUp := time.Duration(config.Target.Timeout.ScaleUP * int(time.Millisecond))
+
 		go func() {
 			metrics.RecordRequest()
-			success := handleRequest(config.Target.Protocol, config.Target.Host, config.Target.Timeout.Forward, config.Target.Timeout.ScaleUP, conn)
+			success := handleRequest(config.Target.Protocol, config.Target.Host, timeout, scaleUp, conn)
 			metrics.RecordRequestFinish(success)
 			sleeper.Notify()
 		}()
 	}
 }
 
-func handleRequest(protocol string, targetHost string, timeout, scaleUpTimeout int, conn net.Conn) bool {
+func handleRequest(protocol string, targetHost string, timeout, scaleUpTimeout time.Duration, conn net.Conn) bool {
 	log.Debug().Msg("new client")
 
-	proxy, err := net.DialTimeout(protocol, targetHost, time.Duration(timeout)*time.Millisecond)
+	proxy, err := net.DialTimeout(protocol, targetHost, timeout)
 	if err != nil {
 		log.Info().Msg("notify failed request")
 		target.
 			NotifyFailedRequest(scaleUpTimeout).
 			Wait()
 
-		proxy, err = net.DialTimeout(protocol, targetHost, time.Duration(timeout)*time.Millisecond)
+		proxy, err = net.DialTimeout(protocol, targetHost, timeout)
 		if err != nil {
 			log.Warn().
 				Err(err).
