@@ -2,7 +2,7 @@
 ############################
 # STEP 1 build executable binary
 ############################
-FROM --platform=$BUILDPLATFORM golang:1.19-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.20-alpine AS builder
 ARG USER=appuser
 ARG UID=10001
 ARG GO_FILES=.
