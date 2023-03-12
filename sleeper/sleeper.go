@@ -25,7 +25,6 @@ func NewSleeper(offset int, triggerFunc func()) Sleeper {
 		&run,
 		&triggered,
 	}
-	log.Info().Int64("until", until).Int64("s.until", *s.until).Msg("sleeper notified")
 	defer func() { go s.start() }()
 	return s
 }

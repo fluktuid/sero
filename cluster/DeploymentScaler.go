@@ -80,11 +80,6 @@ func (d DeploymentScaler) StatusReady(timeout time.Duration) *sync.WaitGroup {
 	return &wg
 }
 
-func (d DeploymentScaler) replicas(deployment string) (int, int) {
-	deploy, _ := clientSet.AppsV1().Deployments(namespace).Get(context.TODO(), deployment, v1.GetOptions{})
-	return int(deploy.Status.Replicas), int(deploy.Status.ReadyReplicas)
-}
-
 // Poll up to timeout seconds for pod to enter running state.
 // Returns an error if the pod never enters the running state.
 func waitForDeployRunning(c kubernetes.Interface, namespace, deployName string, timeout time.Duration) error {
