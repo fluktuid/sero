@@ -58,15 +58,14 @@ func main() {
 }
 
 func handleRequest(protocol string, targetHost string, timeout, scaleUpTimeout int, conn net.Conn) bool {
-	log.Info().Msg("new client")
+	log.Debug().Msg("new client")
 
 	proxy, err := net.DialTimeout(protocol, targetHost, time.Duration(timeout)*time.Millisecond)
 	if err != nil {
 		log.Info().Msg("notify failed request")
-		readyChan := target.NotifyFailedRequest(scaleUpTimeout)
-
-		for range readyChan {
-		}
+		target.
+			NotifyFailedRequest(scaleUpTimeout).
+			Wait()
 
 		proxy, err = net.DialTimeout(protocol, targetHost, time.Duration(timeout)*time.Millisecond)
 		if err != nil {
@@ -79,7 +78,7 @@ func handleRequest(protocol string, targetHost string, timeout, scaleUpTimeout i
 		}
 	}
 
-	log.Info().
+	log.Debug().
 		Str("target", targetHost).
 		Msg("Proxy connected")
 	go copyIO(conn, proxy)

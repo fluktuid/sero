@@ -8,14 +8,14 @@ import (
 
 type Sleeper struct {
 	offset      int
-	until       *time.Time
+	until       *int64
 	triggerFunc func()
 	run         *bool
 	triggered   *bool
 }
 
 func NewSleeper(offset int, triggerFunc func()) Sleeper {
-	until := time.Now().Add(time.Millisecond * time.Duration(offset))
+	until := time.Now().Add(time.Millisecond * time.Duration(offset)).UnixMilli()
 	triggered := false
 	run := true
 	s := Sleeper{
@@ -25,6 +25,7 @@ func NewSleeper(offset int, triggerFunc func()) Sleeper {
 		&run,
 		&triggered,
 	}
+	log.Info().Int64("until", until).Int64("s.until", *s.until).Msg("sleeper notified")
 	defer func() { go s.start() }()
 	return s
 }
@@ -36,9 +37,9 @@ func (s *Sleeper) start() {
 func (s *Sleeper) sleepRoutine() {
 out:
 	for {
-		log.Debug().Bool("triggered", *s.triggered).Str("triggerAt", s.until.Local().String()).Msg("sleeper woke up")
-		now := time.Now()
-		if !now.Before(*s.until) && !*s.triggered {
+		log.Debug().Bool("triggered", *s.triggered).Str("triggerAt", time.Now().String()).Msg("sleeper woke up")
+		now := time.Now().UnixMilli()
+		if now >= *s.until && !*s.triggered {
 			log.Info().Msg("sleeper triggering func")
 			s.triggerFunc()
 			*s.triggered = true
@@ -58,6 +59,8 @@ func (s *Sleeper) Stop() {
 
 func (s *Sleeper) Notify() {
 	log.Info().Msg("sleeper notified")
-	*s.until = time.Now().Add(time.Millisecond * time.Duration(s.offset))
-	*s.triggered = false
+	foo := time.Now().Add(time.Millisecond * time.Duration(s.offset)).UnixMilli()
+	s.until = &foo
+	fl := false
+	s.triggered = &fl
 }

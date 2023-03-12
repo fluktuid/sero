@@ -1,6 +1,8 @@
 package target
 
 import (
+	"sync"
+
 	"github.com/rs/zerolog/log"
 
 	"github.com/fluktuid/sero/cluster"
@@ -28,14 +30,14 @@ func (t *Target) Deployment() string {
 	return t.deployment
 }
 
-func (t *Target) NotifyFailedRequest(chanTimeout int) <-chan util.Void {
+func (t *Target) NotifyFailedRequest(timeout int) *sync.WaitGroup {
 	if t.scaler.Status() != util.StatusUpscaling {
 		log.Info().Msg("scaling up")
 		t.scaler.ScaleUP()
 	}
 
 	// returns 'continue' chan
-	return t.scaler.StatusReadyChan(chanTimeout)
+	return t.scaler.StatusReady(timeout)
 }
 
 func (t *Target) NotifyScaleDown() {

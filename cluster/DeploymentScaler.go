@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -61,24 +62,25 @@ func (d DeploymentScaler) Status() util.Status {
 	return util.StatusDown
 }
 
-func (d DeploymentScaler) StatusReadyChan(timeoutMillis int) <-chan util.Void {
-	chn := make(chan util.Void)
+func (d DeploymentScaler) StatusReady(timeoutMillis int) *sync.WaitGroup {
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
-		replicas := d.readyReplicas(d.targetDeploymentName)
+		desired, ready := d.replicas(d.targetDeploymentName)
 		limit := timeoutMillis / 4
-		for replicas < 1 && limit > 0 {
+		for desired > ready {
 			log.Info().Msg("unready replicas")
 			time.Sleep(time.Duration(250) * time.Millisecond)
-			replicas = d.readyReplicas(d.targetDeploymentName)
+			desired, ready = d.replicas(d.targetDeploymentName)
 			limit--
 		}
 		log.Info().Msg("ready replicas or waitlimit")
-		close(chn)
+		wg.Done()
 	}()
-	return chn
+	return &wg
 }
 
-func (d DeploymentScaler) readyReplicas(deployment string) int {
+func (d DeploymentScaler) replicas(deployment string) (int, int) {
 	deploy, _ := clientSet.AppsV1().Deployments(namespace).Get(context.TODO(), deployment, v1.GetOptions{})
-	return int(deploy.Status.ReadyReplicas)
+	return int(deploy.Status.Replicas), int(deploy.Status.ReadyReplicas)
 }
